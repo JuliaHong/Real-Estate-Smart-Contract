@@ -13,7 +13,7 @@ contract RealEstateContractFactory {
     event LOG_NewContractAddress(address indexed theNewContract, address indexed seller);
 
     constructor(){
-        owner=msg.senders;
+        owner=msg.sender;
     }
 
     function createContract() external  {
@@ -47,3 +47,56 @@ contract RealEstateContractFactory {
     }
 
 }
+
+
+contract RealEstateSingleContract {
+    //Each of these contracts contain informations of every detail of contract
+
+    address public seller;
+    address public buyer;
+    address public owner;
+    uint public priceOfRealEstate;
+
+    uint public contractNumber;
+    bytes32 public contractType; //Monthly, Yearly, Buying
+
+    constructor (uint _contractNumber){
+        contractNumber=_contractNumber;
+        RealEstateContractFactory rcf = RealEstateContractFactory(msg.sender);
+        seller=rcf.getSellerAddress(contractNumber);
+        owner = rcf.getOwner();
+
+    }
+
+
+
+
+    function setBuyerAddress(address _buyerAddress){
+        buyer=_buyerAddress;
+    }
+
+
+    function setPriceOfRealEstate(uint _priceOfRealEstate) external {
+        //There should be modifier to confirm it is permitted by seller and buyer.
+
+        priceOfRealEstate = _priceOfRealEstate;
+
+
+    }
+
+
+    function signToContract() payable external  {
+        if(msg.value != priceOfRealEstate){
+        revert();
+        }
+        setDeposit();
+        seller.transfer(msg.value);
+
+    }
+
+    function setDeposit() internal {
+        uint deposit = 10000;//how can I set this as priceOfRealEstate*0.05;
+
+
+    }
+    
