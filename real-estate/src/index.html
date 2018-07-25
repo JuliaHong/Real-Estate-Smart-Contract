@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>이더리움 부동산</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12 col-sm-8 col-sm-push-2">
+          <h1 class="text-center">이더리움 부동산</h1>
+          <hr/>
+          <br/>
+        </div>
+      </div>
+
+      <div class="row" id="list">
+        <!-- 매물 리스트 -->
+      </div>
+    </div>   
+    
+    <div id="template" style="display: none;">
+      <div class="col-sm-6 col-md-4 col-lg-3">
+        <div class="panel panel-success panel-realEstate">
+          <div class="panel-heading">
+            <h3 class="panel-title">매물</h3>
+          </div>
+          <div class="panel-body">
+            <img style="width: 100%;" src="" >
+            <br/><br/>
+            <strong>아이디</strong>: <span class="id"></span><br/>
+            <strong>종류</strong>: <span class="type"></span><br/>
+            <strong>면적(m²)</strong>: <span class="area"></span><br/>
+            <strong>가격(ETH)</strong>: <span class="price"></span><br/><br/>
+            <button class="btn btn-info btn-buy" 
+                    type="button" 
+                    data-toggle="modal" 
+                    data-target="#buyModal">
+                    매입
+            </button>
+            <button class="btn btn-info btn-buyerInfo" 
+                    type="button" 
+                    data-toggle="modal" 
+                    data-target="#buyerInfoModal" 
+                    style="display: none;">
+                    매입자 정보
+            </button>          
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/web3.min.js"></script>
+    <script src="js/truffle-contract.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/utf8.js"></script>
+  </body>
+</html>
