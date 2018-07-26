@@ -20,12 +20,12 @@
     <div class="container">
       <div class="row">
         <div class="col-xs-12 col-sm-8 col-sm-push-2">
-          <h1 class="text-center">이더리움 부동산</h1>
+          <h1 class="text-center">정아쓰 부동산</h1>
           <hr/>
           <br/>
         </div>
       </div>
-
+      <div id="events"></div>
       <div class="row" id="list">
         <!-- 매물 리스트 -->
       </div>
@@ -61,6 +61,48 @@
         </div>
       </div>
     </div>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="buyModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">매입자 정보</h4>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="id" />
+            <input type="hidden" id="price" />
+            <input type="text" class="form-control" id="name" placeholder="이름" /><br/>
+            <input type="number" class="form-control" id="age" placeholder="나이" />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">닫기</button>
+            <button type="button" class="btn btn-primary" onclick="App.buyRealEstate(); return false;">제출</button>
+            
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="buyerInfoModal">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title">매입자 정보</h4>
+            </div>
+            <div class="modal-body">
+              <strong>Address</strong> : <span id="buyerAddress"></span><br/>
+              <strong>Name</strong> : <span id="buyerName"></span><br/>
+              <strong>Age</strong> : <span id="buyerAge"></span><br/>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">닫기</button>
+              
+            </div>
+          </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+      </div><!-- /.modal -->
     
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
