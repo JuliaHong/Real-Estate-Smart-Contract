@@ -34,7 +34,7 @@ contract MarketMangement{
         uint index = RealEstateList.length;
         require(existenceCheck[index]!=true); //If that is true, It means it is already uploaded before.
 
-        RealEstateList[index]=InfoForLedger(msg.sender,_price,_originalNumber,1);
+        RealEstateList.push(InfoForLedger(msg.sender,_price,_originalNumber,1));
         InfoForLedgerByOriginalNumber[_originalNumber]=RealEstateList[index]; //so.. Now you can find LedgerInfo through index(0,1,2...) or 14-digit number!
 
 
@@ -60,14 +60,14 @@ contract MarketMangement{
 
 
         if(RealEstateList[_index].status==1){//when this is sold to someone, we need to change this status to 2(SOLDOUT MODE).
-         RealEstateList[_index].status==2;
+         RealEstateList[_index].status=2;
          completedRealEstate++;
          availableRealEstate--;
 
           assert(allRealEstate==completedRealEstate+availableRealEstate); //just for check!
 
         }else{
-            RealEstateList[_index].status==1; //So this realEstate is FOR SALE mode now! :D wow hehe
+            RealEstateList[_index].status=1; //So this realEstate is FOR SALE mode now! :D wow hehe
             completedRealEstate--;
             availableRealEstate++;
 
