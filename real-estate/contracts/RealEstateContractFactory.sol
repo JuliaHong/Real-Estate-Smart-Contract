@@ -8,7 +8,7 @@ contract RealEstateContractFactory is MarketManagement {
 
     address[] public newContracts; //Every new contracts will be stored here with address
     address public admin; //The one who published this contract,me.
-    uint numberOfContracts;
+    uint public numberOfContracts;
 
     event LOG_NewContractAddress(address theNewContract, address seller,uint price,uint originalNumber);
 
@@ -16,7 +16,7 @@ contract RealEstateContractFactory is MarketManagement {
         admin=msg.sender;
     }
 
-    function createContract(uint _index) external  { //index of RealEstate (need to think about using 14-digits original number)
+    function createContract(address marketAddress,uint _index,uint8 _typeOfContract) external  { //index of RealEstate (need to think about using 14-digits original number)
 
         //only seller(owner of Real Estate) can make single contract.
 
@@ -28,7 +28,7 @@ contract RealEstateContractFactory is MarketManagement {
         uint status;
 
 
-        MarketManagement m = MarketManagement(new MarketManagement());
+        MarketManagement m = MarketManagement(marketAddress);
 
 
 
@@ -37,7 +37,7 @@ contract RealEstateContractFactory is MarketManagement {
         require(msg.sender==RealEstateOwner); //Only owner of this realEstate can make contract!
         require(status==1); //Status of realEstate should be 1 which means it is FOR SALE MODE;
 
-        address newContract = new RealEstateSingleContract(_index,msg.sender,price,originalNumber,status);
+        address newContract = new RealEstateSingleContract(_index,msg.sender,price,originalNumber,status,_typeOfContract);
         newContracts.push(newContract);
 
         numberOfContracts++;
