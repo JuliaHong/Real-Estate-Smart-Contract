@@ -14,16 +14,33 @@ contract RealEstateSingleContract{
     uint public deposit;
     uint public balance;
 
+    //For Yearly function;
+
+    uint8 public contractMonthForYearly;
+
+    //For Monthly function;
+
+    uint public monthlyRent;
+    uint public contractMonthForMonthly;
+    uint public remainedMonth;
+    uint public paidMonth=0; //ContractMonthForMonthly = remainedMonth+paidMonth; //maybe just for assert
+
 
     //statement of contract
 
     uint8 public contract_status =contractBeforeSigned;
 
     uint8 constant contractBeforeSigned =0;
-    uint8 constant contractSigned_beforeDeposit=10; //Buyer signed deposit but didn't send the deposit yet;
-    uint8 constant contractSigned_beforeBalance=20; //Buyer payed deposit but didn't send the balance yet;
-    uint8 constant contractSigned_completed=100; // Buyer payed depoist and balance! EveryBody is happy :D
-    uint8 constant contractSigned_cancelled =255; //After sending depoist, buyer changed mind. End of this contract.
+    uint8 constant contractSigned_beforeDeposit=1; //Buyer signed deposit but didn't send the deposit yet;
+    //statement of Buying
+    uint8 constant contractSigned_beforeBalance=10; //Buyer payed deposit but didn't send the balance yet;
+    uint8 constant contractSigned_completed=20; // Buyer payed depoist and balance! EveryBody is happy :D
+    uint8 constant contractSigned_cancelled =30; //After sending depoist, buyer changed mind. End of this contract.
+
+    //statement of Monthly
+
+    uint8 constant contractSigned_payingRent=40;
+    uint8 constant contractSigned_finished=50; //So, technically buyer finished their contract, owner should give back buyer's deposit.
 
     uint8 public contractType; //Monthly, Yearly, Buying
 
@@ -111,14 +128,47 @@ contract RealEstateSingleContract{
 
 //****************************** Functions Basic (For all type of contract) ************************************************
 
-
+    // STEP1. Set the buyer's ethereum address.
     function setBuyerAddress(address _buyerAddress){
         buyer=_buyerAddress;
     }
 
+    // STEP2. Set Deposit.
+    function setDeposit(uint _deposit) external onlyOwner {
+        deposit = deposit = _deposit * 10 ** 18; //wei => ether
+        balance = priceOfRealEstate;
+    }
 
 
-//****************************** Functions for BUYING contract ************************************************
+    ////////////////////////////////////////////////////////////////
+    //                                                            //
+    //STEP3. Follow the instruction according to your contractType//
+    //                                                            //
+    ////////////////////////////////////////////////////////////////
+
+
+    //STEP4. If you finish setting for your contract, sign to contract.
+    function signToContract() external onlyBuyer {
+        require(contractType==buying);
+        require(contract_status==0);
+
+        contract_status = contractSigned_beforeDeposit;
+
+
+    }
+
+    //STEP5. Send Deposit to seller
+
+    function sendDeposit() external payable onlyBuyer{
+         require(msg.value==deposit);
+        //require( now <= depositDeadLine);
+
+        owner.transfer(address(this).balance);
+        contract_status=contractSigned_beforeBalance;
+        balance = priceOfRealEstate-deposit;
+
+    }
+//****************************** Functions for BUYING contract ************************************************************
 
     function setDeadLine(uint _depositDeadLine, uint _balanceDeadLine) internal { //for example setDeadLine(5,40) means until 5days and 40days from now.
 
@@ -128,38 +178,18 @@ contract RealEstateSingleContract{
 
     }
 
-    function setDeposit(uint _deposit) external onlyOwner {
-        deposit = deposit = _deposit * 10 ** 18; //wei => ether
-        balance = priceOfRealEstate;
-    }
 
 
 
 
-    function signToBuyingContract() external onlyBuyer {
-        require(contractType==buying);
-        require(contract_status==0);
-
-        contract_status = contractSigned_beforeDeposit;
 
 
-    }
 
-    //functions to send deposit and balance to seller;
 
-    function sendDeposit() external payable onlyBuyer{
-         require(msg.value==deposit);
-        //require( now <= depositDeadLine);
 
-        //owner.transfer(deposit);
-        contract_status=contractSigned_beforeBalance;
-        balance = priceOfRealEstate-deposit;
-
-    }
-
-    function getDeposit() public onlyOwner{
-        msg.sender.transfer(address(this).balance);
-    }
+    //function getDeposit() public onlyOwner{
+      //  msg.sender.transfer(address(this).balance);
+    //}
 
 
     function getBalance() external returns(uint) {
@@ -169,10 +199,10 @@ contract RealEstateSingleContract{
     }
 
     function sendBalance() onlyBuyer{
-        //require(msg.value == balance);
+        require(msg.value == balance);
         //require( now <= balanceDeadLine);
 
-        owner.transfer(deposit);
+        owner.transfer(address(this).balance);
         contract_status = contractSigned_completed;
     }
 
@@ -200,7 +230,39 @@ contract RealEstateSingleContract{
 
     }
 
+//****************************** Function for Yearly(Jeon Sae) contract ************************************************************
 
+    function setContractMonth(uint8 _month) external onlyOwner {
+
+        contractMonthForYearly = _month;
+
+    }
+
+
+
+//****************************** Function for Monthly contract ************************************************************
+
+    function setMonthlyContract(uint _rentMoney,uint _contractMonth) external onlyOwner{
+
+        monthlyRent=_rentMoney*10**18; //wei  to ether
+        contractMonthForMonthly=_contractMonth;
+        remainedMonth=_contractMonth;
+
+
+    }
+
+    function payMonthlyRent() payable onlyBuyer{
+        require(msg.value == monthlyRent);
+        require(contract_status ==contractSigned_payingRent);
+
+        owner.transfer(address(this).balance);
+        remainedMonth--;
+        paidMonth++;
+
+        if(paidMonth==contractMonthForMonthly){
+
+        }
+    }
 
 
 
