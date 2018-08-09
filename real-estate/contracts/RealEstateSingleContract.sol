@@ -24,7 +24,7 @@ contract RealEstateSingleContract{
 
     //so there are gonna be type of Buying
 
-    uint8 public buyingType;
+    uint8 public buyingType = 0;
 
 
     uint8 simpleBuying =1 ; //      Deposit => Balance
@@ -36,8 +36,6 @@ contract RealEstateSingleContract{
     // In the case of simple buying , two transfers are needed by buyer. like sending deposit and sending balance;
     // In the case of pre-balance buying, three tranfers will be needed as well.
     // So I'm gonna use buyingStatus count parameter to know where contract status is according to their buying type.
-
-
 
     uint8 public buyingStatus;
 
@@ -227,21 +225,28 @@ contract RealEstateSingleContract{
     }
 
 
-    function setContractCondition(uint _pre_deposit, uint _pre_balance, uint _deposit) external onlyOwner {
+    function setContractCondition(uint _pre_deposit, uint _pre_balance, uint _deposit,uint _balance) external onlyOwner {
 
 
         if(buyingType==simpleBuying){
-            balance=priceOfRealEstate; //already converted to ether in the market management file.
+            balance=_balance*10**18; //already converted to ether in the market management file.
             deposit = _deposit*10**18;
+
+            //assert(priceOfRealEstate==balance+deposit);
         }else if (buyingType == preBalanceBuying){
-            balance = priceOfRealEstate;
+            balance = _balance*10**18;
             pre_balance=_pre_balance*10**18;
             deposit = _deposit*10**18;
+
+            //assert(priceOfRealEstate==balance+pre_balance+deposit);
+
         }else if (buyingType == preDepositBuying){
-            balance = priceOfRealEstate;
+            balance = _balance*10**18;
             pre_balance=_pre_balance*10**18;
             pre_deposit=_pre_deposit*10**18;
             deposit = _deposit*10**18;
+
+            //assert(priceOfRealEstate == balance+pre_deposit+pre_balance+deposit);
         }
 
 
@@ -276,18 +281,77 @@ contract RealEstateSingleContract{
     function sendMoneyToBuyer(uint8 _payType) payable onlyBuyer{
         require(_payType >=1 && _payType <=4);
 
-        if(_payType == 1) {
-            require(buyingType == preDepositBuying);
-            require(msg.value == pre_deposit)
-            owner.transfer(address(this).balance);
+        if(buyingType == simpleBuying) {
+            if(_payType==2){ //if buyer wants to pay deposit , buyingStatus should be 0 (never transfered before)
+                require(buyingStatus ==0);
+                require(msg.value == deposit);
+                owner.transfer(address(this).balance);
+                buyingStatus++; //means that you paid deposit.
+            }
+            else if(_payType==4){
+                require(buyingStatus==1); // It means buyer should have already paid deposit.
+                require(msg.value == balance);
+                owner.transfer(address(this).balance);
+                buyingStatus++; //So buyingStatus is 2 right now which means simpleBuying contract is "COMPLETED"
+            }
+
         }
 
+        else if (buyingType == preBalanceBuying){
+
+            if(_payType==2){ //if buyer wants to pay deposit , buyingStatus should be 0 (never transfered before)
+                require(buyingStatus ==0);
+                require(msg.value == deposit);
+                owner.transfer(address(this).balance);
+                buyingStatus++; //means that you paid deposit.
+            }
+            else if(_payType==3){
+                require(buyingStatus==1); // It means buyer should have already paid deposit.
+                require(msg.value == pre_balance);
+                owner.transfer(address(this).balance);
+                buyingStatus++;
+            }
+            else if(_payType==4){
+                require(buyingStatus==2);
+                require(msg.value == balance);
+                owner.transfer(address(this).balance);
+                buyingStatus++; //So buyingStatus is 3 right now which means preBalanceBuying contract is "COMPLETED" woo hoo~><
+            }
 
 
 
+        }
+        else if (buyingType == preDepositBuying){
 
-        owner.transfer(address(this).balance);
-        contract_status = contract_completed;
+
+            if (_payType==1){
+							 	require(buyingStatus == 0);
+								require(msg.value == pre_deposit);
+								owner.transfer(address(this).balance);
+								buyingStatus++;
+            }
+            else if(_payType==2){
+                require(buyingStatus ==1);
+                require(msg.value == deposit);
+                owner.transfer(address(this).balance);
+                buyingStatus++; //means that you paid deposit.
+            }
+            else if(_payType==3){
+                require(buyingStatus==2); // It means buyer should have already paid deposit.
+                require(msg.value == pre_balance);
+                owner.transfer(address(this).balance);
+                buyingStatus++;
+            }
+            else if(_payType==4){
+                require(buyingStatus==3);
+                require(msg.value == balance);
+                owner.transfer(address(this).balance);
+                buyingStatus++; //So buyingStatus is 4 right now which means preDepositBuying contract is "COMPLETED" woo hoo~><
+            }
+
+
+
+        }
     }
 
     //function to cancel the contract : onlylimited when buyer already paid depoist
