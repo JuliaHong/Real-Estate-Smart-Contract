@@ -24,7 +24,7 @@ contract RealEstateSingleContract{
 
     //so there are gonna be type of Buying
 
-    uint8 public buyingType = 0;
+    uint8 public buyingType;
 
 
     uint8 simpleBuying =1 ; //      Deposit => Balance
@@ -37,8 +37,8 @@ contract RealEstateSingleContract{
     // In the case of pre-balance buying, three tranfers will be needed as well.
     // So I'm gonna use buyingStatus count parameter to know where contract status is according to their buying type.
 
-    uint8 public buyingStatus;
-
+    uint8 public buyingStatus=100;
+    uint8 constant buyingContractCancelled=255;
 
     //For Yearly function;
 
@@ -79,11 +79,10 @@ contract RealEstateSingleContract{
     //statement of Yearly
 
 
-    uint8 public contractType; //Monthly, Yearly, Buying
+    uint8 public contractType; //Monthly, Buying
 
     uint8 constant monthly =1; //Monthly
-    uint8 constant yearly =2; // In Korean.. Jeon Sae!!!
-    uint8 constant buying=3;
+    uint8 constant buying=2;
 
     //Money Clock for payment
 
@@ -91,6 +90,9 @@ contract RealEstateSingleContract{
 
     uint depositDeadLine; //Can make this longer if seller confirms.
     uint balanceDeadLine; //Can make this longer if seller confirms.
+
+    uint preBalanceDeadLine;
+    uint preDepositDeadLine;
 
 
 
@@ -122,12 +124,6 @@ contract RealEstateSingleContract{
             revert();
         _;
 
-    }
-
-    modifier onlyYearly{
-        if(contractType!=yearly)
-            revert();
-        _;
     }
 
     modifier onlyBuying{
@@ -180,14 +176,7 @@ contract RealEstateSingleContract{
 
 
     //STEP3. If you finish setting for your contract, sign to contract.
-    function signToContract() external onlyBuyer {
-        require(contractType==buying);
-        require(contract_status==0);
 
-        contract_status = contractSigned_beforeDeposit;
-
-
-    }
 
     //STEP5. Send Deposit to seller
 
@@ -228,19 +217,21 @@ contract RealEstateSingleContract{
     function setContractCondition(uint _pre_deposit, uint _pre_balance, uint _deposit,uint _balance) external onlyOwner {
 
 
-        if(buyingType==simpleBuying){
+       //or I'm thinking about just make this simple not distinguished by buying type
+
+       if(buyingType==1){
             balance=_balance*10**18; //already converted to ether in the market management file.
             deposit = _deposit*10**18;
 
             //assert(priceOfRealEstate==balance+deposit);
-        }else if (buyingType == preBalanceBuying){
-            balance = _balance*10**18;
-            pre_balance=_pre_balance*10**18;
-            deposit = _deposit*10**18;
+        }else if (buyingType == 2){
+          balance = _balance*10**18;
+          pre_balance=_pre_balance*10**18;
+        deposit = _deposit*10**18;
 
             //assert(priceOfRealEstate==balance+pre_balance+deposit);
 
-        }else if (buyingType == preDepositBuying){
+        }else if (buyingType == 3){
             balance = _balance*10**18;
             pre_balance=_pre_balance*10**18;
             pre_deposit=_pre_deposit*10**18;
@@ -255,15 +246,21 @@ contract RealEstateSingleContract{
 
 
 
-    function setDeadLine(uint _depositDeadLine, uint _balanceDeadLine) internal { //for example setDeadLine(5,40) means until 5days and 40days from now.
+    function setDeadLine(uint _preDepositDeadLine,uint _depositDeadLine,uint _preBalanceDeadLine, uint _balanceDeadLine) onlyOwner { //for example setDeadLine(5,40) means until 5days and 40days from now.
 
+        preDepositDeadLine= now + _preDepositDeadLine*86400;
         depositDeadLine = now + _depositDeadLine*86400;
+        preBalanceDeadLine = now + _preBalanceDeadLine*86400;
         balanceDeadLine = now + _balanceDeadLine*86400;
 
 
     }
 
+    function signToContract() external onlyBuyer {
 
+        buyingStatus = 0;
+
+    }
 
 
     //function getDeposit() public onlyOwner{
@@ -284,12 +281,14 @@ contract RealEstateSingleContract{
         if(buyingType == simpleBuying) {
             if(_payType==2){ //if buyer wants to pay deposit , buyingStatus should be 0 (never transfered before)
                 require(buyingStatus ==0);
+                require(depositDeadLine>=now); //you need to pay until depositDeadLine otherwise you are not gonna be able to pay.
                 require(msg.value == deposit);
                 owner.transfer(address(this).balance);
                 buyingStatus++; //means that you paid deposit.
             }
             else if(_payType==4){
                 require(buyingStatus==1); // It means buyer should have already paid deposit.
+                require(balanceDeadLine>=now);
                 require(msg.value == balance);
                 owner.transfer(address(this).balance);
                 buyingStatus++; //So buyingStatus is 2 right now which means simpleBuying contract is "COMPLETED"
@@ -301,18 +300,21 @@ contract RealEstateSingleContract{
 
             if(_payType==2){ //if buyer wants to pay deposit , buyingStatus should be 0 (never transfered before)
                 require(buyingStatus ==0);
+                require(depositDeadLine>=now);
                 require(msg.value == deposit);
                 owner.transfer(address(this).balance);
                 buyingStatus++; //means that you paid deposit.
             }
             else if(_payType==3){
                 require(buyingStatus==1); // It means buyer should have already paid deposit.
+                require(preBalanceDeadLine>=now);
                 require(msg.value == pre_balance);
                 owner.transfer(address(this).balance);
                 buyingStatus++;
             }
             else if(_payType==4){
                 require(buyingStatus==2);
+                require(balanceDeadLine>=now);
                 require(msg.value == balance);
                 owner.transfer(address(this).balance);
                 buyingStatus++; //So buyingStatus is 3 right now which means preBalanceBuying contract is "COMPLETED" woo hoo~><
@@ -325,25 +327,29 @@ contract RealEstateSingleContract{
 
 
             if (_payType==1){
-							 	require(buyingStatus == 0);
-								require(msg.value == pre_deposit);
-								owner.transfer(address(this).balance);
-								buyingStatus++;
+				require(buyingStatus == 0);
+				require(preDepositDeadLine>=now);
+				require(msg.value == pre_deposit);
+				owner.transfer(address(this).balance);
+				buyingStatus++;
             }
             else if(_payType==2){
                 require(buyingStatus ==1);
+                require(depositDeadLine>=now);
                 require(msg.value == deposit);
                 owner.transfer(address(this).balance);
                 buyingStatus++; //means that you paid deposit.
             }
             else if(_payType==3){
                 require(buyingStatus==2); // It means buyer should have already paid deposit.
+                require(preBalanceDeadLine>=now);
                 require(msg.value == pre_balance);
                 owner.transfer(address(this).balance);
                 buyingStatus++;
             }
             else if(_payType==4){
                 require(buyingStatus==3);
+                require(balanceDeadLine>=now);
                 require(msg.value == balance);
                 owner.transfer(address(this).balance);
                 buyingStatus++; //So buyingStatus is 4 right now which means preDepositBuying contract is "COMPLETED" woo hoo~><
@@ -356,27 +362,6 @@ contract RealEstateSingleContract{
 
     //function to cancel the contract : onlylimited when buyer already paid depoist
 
-    function cancelContractBySeller() payable {
-
-
-        buyer.transfer(deposit);
-        contract_status = contract_cancelled;
-
-
-    }
-
-    function cancelContractByBuyer() payable onlyBuyer {
-
-        if (contract_status == contractSigned_beforeDeposit){
-            require(msg.value == deposit);
-            //seller.transfer(msg.value); //even if you didn't send deposit you need to send him depoist because you are the one who cancelled this contract.
-            contract_status = contract_cancelled;
-        }
-        else if (contract_status == contractSigned_beforeBalance){ //When buyer already payed deposit , seller doesn't need to give deposit back to buyer
-            contract_status = contract_cancelled;
-        }
-
-    }
 
 //****************************** Function for Yearly(Jeon Sae) contract ************************************************************
 
