@@ -51,8 +51,10 @@ contract RealEstateSingleContract{
 
     uint public monthlyStatus = 100; //It will change to 0 when the contract is signed by buyer.
                                      // monthlyStatus=0 ; contract signed by buyer.
-                                     // monthlyStatus=1 ; deposit sended , monthly paying status.
-                                     // monthlyStatus=2 ; expired contract, monthly paying stops.
+                                     // monthlyStatus=1 ; pre deposit sended
+																		 // monthlyStatus=2 ; deposit sended, monthly paying status.
+                                     // monthlyStatus=255 ; expired contract, monthly paying stops.
+
 
 
     //statement of contract
@@ -161,7 +163,7 @@ contract RealEstateSingleContract{
 //****************************** Functions Basic (For all type of contract) ************************************************
 
     // STEP1. Set the buyer's ethereum address.
-    function setBuyerAddress(address _buyerAddress){
+    function setBuyerAddress(address _buyerAddress) external onlyBuyer {
         buyer=_buyerAddress;
     }
 
@@ -179,28 +181,7 @@ contract RealEstateSingleContract{
 
     //STEP5. Send Deposit to seller
 
-    function sendDeposit() external payable onlyBuyer{
-         require(msg.value==deposit);
-        //require( now <= depositDeadLine);
 
-        owner.transfer(address(this).balance);
-
-
-        //differencitate contract_status by their contractType
-
-        // + need to find which one is cheeper between if-else if and switch :)
-
-        if ( contractType == buying ){
-
-            contract_status=contractSigned_beforeBalance;
-            balance = priceOfRealEstate-deposit;
-
-        }
-        else if ( contractType == monthly ){
-            contract_status=contractSigned_payingRent;
-        }
-
-    }
 //****************************** Functions for BUYING contract ************************************************************
 
 
@@ -242,7 +223,7 @@ contract RealEstateSingleContract{
 
 
 
-    function setDeadLine(uint _preDepositDeadLine,uint _depositDeadLine,uint _preBalanceDeadLine, uint _balanceDeadLine) onlyOwner { //for example setDeadLine(5,40) means until 5days and 40days from now.
+    function setDeadLine(uint _preDepositDeadLine,uint _depositDeadLine,uint _preBalanceDeadLine, uint _balanceDeadLine) external onlyOwner { //for example setDeadLine(5,40) means until 5days and 40days from now.
 
         preDepositDeadLine= now + _preDepositDeadLine*86400;
         depositDeadLine = now + _depositDeadLine*86400;
@@ -271,7 +252,7 @@ contract RealEstateSingleContract{
     // 4. So ,
     //     1 = pre_deposit , 2 = deposit , 3 = pre_balance, 4 = balance
 
-    function sendMoneyToBuyer(uint8 _payType) payable onlyBuyer{
+    function sendMoneyToBuyer(uint8 _payType) payable external onlyBuyer{
         require(_payType >=1 && _payType <=4);
 
         if(buyingType == simpleBuying) {
@@ -356,15 +337,49 @@ contract RealEstateSingleContract{
         }
     }
 
-    //function to cancel the contract : onlylimited when buyer already paid depoist
+//**************************** Function for Cancel Buying contract *******************************************************
+// First of all, you need to understand there are two types of contract cancellation in trading real-estate.
+// I classified based on court cases and real estate law in South Korea.
+// It is Before (Pre) Balance and After (Pre) Balance. (Pre Balance is also considered as balance in law)
+// Before balance, contract can be borken with unilateral demand of one side.
+// But after paying balance or pre balance, breaking contract NEED mutual consent.
+
+
+
+//Before balance = cancel_1;
+//After balance = cancel_2;
+
+
+
+    function buying_cancel_1() payable external {
+
+        if(buyingType==preDepositBuying){
+            require(buyingStatus==1 || buyingStatus ==2);
+           if(msg.sender == owner){ //if the msg.sender is buyer, you don't need to transfer any money. Buyer just can keep deposit which buyer sent before.
+                require(msg.value == deposit*2);
+                buyer.transfer(address(this).balance);
+            }
+        }else{ //There is no reason to use else if cause simpleBuying and preBalance buyingStatus will be 1
+            require(buyingStatus==1);
+            if(msg.sender == owner){
+                require(msg.value == deposit*2);
+                buyer.transfer(address(this).balance);
+            }
+        }
+
+        buyingStatus = buyingContractCancelled;
+
+
+    }
 
 
 
 
 //****************************** Function for Monthly contract ************************************************************
 
-    function setMonthlyContract(uint _deposit,uint _rentMoney,uint _contractMonth) external onlyOwner{
+    function setMonthlyContract(uint _preDeposit,uint _deposit,uint _rentMoney,uint _contractMonth) external onlyOwner{
         require(contractType ==1);
+        pre_deposit=_preDeposit*10**18;
         deposit = _deposit*10**18;
         monthlyRent=_rentMoney*10**18; //wei  to ether
         contractMonths=_contractMonth;
@@ -378,8 +393,16 @@ contract RealEstateSingleContract{
 
     }
 
+    function sendPreDeposit() payable external onlyBuyer{
+        require(monthlyStatus==0);
+        require(msg.value == pre_deposit);
+
+        owner.transfer(address(this).balance);
+        monthlyStatus++;
+    }
+
     function sendMonthlyDepositAndFirstMonthlyRent() payable external onlyBuyer{
-        require(monthlyStatus ==0);
+        require(monthlyStatus ==1);
         require(msg.value == deposit+monthlyRent);
 
         owner.transfer(address(this).balance);
@@ -390,9 +413,9 @@ contract RealEstateSingleContract{
         monthlyRentDeadLine = now + 2592000;
     }
 
-    function payMonthlyRent() payable onlyBuyer{
+    function payMonthlyRent() payable external onlyBuyer{
         require(monthlyRentDeadLine>=now);
-        require(monthlyStatus==1);
+        require(monthlyStatus==2);
         require(msg.value == monthlyRent);
 
         owner.transfer(address(this).balance);
@@ -411,13 +434,40 @@ contract RealEstateSingleContract{
     function SendBackDeposit() payable external onlyOwner { //This is diffrent from cancelled contract because it is simply completed contract due to end of contract months.
 
         require(msg.value == deposit);
-        require(monthlyStatus==2);
+        require(monthlyStatus==3);
 
         buyer.transfer(address(this).balance);
 
 
 
     }
+
+
+
+//******************************************Cancelling Monthly Contract**************************************************************
+
+//Like Buying Contract,,There's two types of cancelling monthly contract
+//One is before paying deposit, the other one is after paying deposit.
+//If buyer break the contract before paying deposit, buyer can't get pre_deposit.
+//If seller break the contract before paying deposit, seller should give buyer pre_deposit*2 amount of ether.
+
+//Same as buying contract, after deposit you can't break the contract with unilateral demand. We will talk about how to make mutual consent later....:>
+
+
+//First. Before paying deposit
+
+function monthly_cancel_1() payable external {
+	require(monthlyStatus==1);// It means buyer paid pre deposit.
+
+	if(msg.sender == owner){
+		require(msg.value == (pre_deposit)*2);
+		buyer.transfer(address(this).balance);
+	}
+	monthlyStatus=255; // it means this contract is expired.
+
+}
+
+
 
 
 
