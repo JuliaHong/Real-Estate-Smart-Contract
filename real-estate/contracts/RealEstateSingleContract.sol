@@ -40,20 +40,19 @@ contract RealEstateSingleContract{
     uint8 public buyingStatus=100;
     uint8 constant buyingContractCancelled=255;
 
-    //For Yearly function;
-
-    uint8 public contractMonthForYearly;
 
     //For Monthly function;
 
     uint public monthlyRent;
-    uint public contractMonthForMonthly;
-    uint public remainedMonth;
-    uint public paidMonth=0; //ContractMonthForMonthly = remainedMonth+paidMonth; //maybe just for assert
+    uint public contractMonths;
+    uint public remainedMonths;
+    uint public paidMonths=0; //ContractMonthForMonthly = remainedMonth+paidMonth; //maybe just for assert
 
 
-
-
+    uint public monthlyStatus = 100; //It will change to 0 when the contract is signed by buyer.
+                                     // monthlyStatus=0 ; contract signed by buyer.
+                                     // monthlyStatus=1 ; deposit sended , monthly paying status.
+                                     // monthlyStatus=2 ; expired contract, monthly paying stops.
 
 
     //statement of contract
@@ -96,7 +95,7 @@ contract RealEstateSingleContract{
 
 
 
-
+    uint monthlyRentDeadLine;
 
 
 //***************************** Modifier *****************************************
@@ -199,9 +198,6 @@ contract RealEstateSingleContract{
         }
         else if ( contractType == monthly ){
             contract_status=contractSigned_payingRent;
-        }
-        else if ( contractType == yearly ){
-            //contract_status = fa;ldjsf;jad;slfj;l;
         }
 
     }
@@ -363,51 +359,62 @@ contract RealEstateSingleContract{
     //function to cancel the contract : onlylimited when buyer already paid depoist
 
 
-//****************************** Function for Yearly(Jeon Sae) contract ************************************************************
-
-    function setContractMonth(uint8 _month) external onlyOwner {
-
-        contractMonthForYearly = _month;
-
-    }
-
 
 
 //****************************** Function for Monthly contract ************************************************************
 
-    function setMonthlyContract(uint _rentMoney,uint _contractMonth) external onlyOwner{
-
+    function setMonthlyContract(uint _deposit,uint _rentMoney,uint _contractMonth) external onlyOwner{
+        require(contractType ==1);
+        deposit = _deposit*10**18;
         monthlyRent=_rentMoney*10**18; //wei  to ether
-        contractMonthForMonthly=_contractMonth;
-        remainedMonth=_contractMonth;
+        contractMonths=_contractMonth;
+        remainedMonths=_contractMonth;
 
 
     }
 
-    function payMonthlyRent() payable onlyBuyer{
-        require(msg.value == monthlyRent);
-        require(contract_status ==contractSigned_payingRent);
+    function signToMonthlyContract() external onlyBuyer{
+        monthlyStatus=0;
+
+    }
+
+    function sendMonthlyDepositAndFirstMonthlyRent() payable external onlyBuyer{
+        require(monthlyStatus ==0);
+        require(msg.value == deposit+monthlyRent);
 
         owner.transfer(address(this).balance);
-        remainedMonth--;
-        paidMonth++;
+        remainedMonths--;
+        paidMonths++;
+        monthlyStatus++;
+        // ****************For now, It will be like paying every 30 days. *********
+        monthlyRentDeadLine = now + 2592000;
+    }
 
-        assert(contractSigned_payingRent == remainedMonth+paidMonth);
+    function payMonthlyRent() payable onlyBuyer{
+        require(monthlyRentDeadLine>=now);
+        require(monthlyStatus==1);
+        require(msg.value == monthlyRent);
 
-        if(paidMonth==contractMonthForMonthly){
-            contract_status==contractSigned_expired; // As this contract is ended, owner should give back buyer deposit.
+        owner.transfer(address(this).balance);
+        remainedMonths--;
+        paidMonths++;
+
+        monthlyRentDeadLine = monthlyRentDeadLine + 2592000; // Because you paid monthly rent, deadline need to add 30 days.
+
+        assert(contractMonths == remainedMonths+paidMonths);
+
+        if(paidMonths==contractMonths){
+            monthlyStatus++; // As this contract is ended, owner should give back buyer deposit.
         }
     }
 
     function SendBackDeposit() payable external onlyOwner { //This is diffrent from cancelled contract because it is simply completed contract due to end of contract months.
 
         require(msg.value == deposit);
-        require(contract_status == contractSigned_expired);
+        require(monthlyStatus==2);
 
         buyer.transfer(address(this).balance);
 
-
-        contract_status = contract_completed;
 
 
     }
